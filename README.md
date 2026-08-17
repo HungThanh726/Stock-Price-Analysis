@@ -63,4 +63,4 @@ Số liệu dưới đây được tính trực tiếp trên bộ dữ liệu, d
 ## 5. Cách chạy lại
 
 1. Import `LichSuGia_ALL_01_01_2026_02_01_2026.csv` vào SQL Server (khuyến nghị dùng SSMS Import Wizard). 
-2. Đối chiếu kết quả với phần *Key Findings* ở trên.
+2. Chạy tuần tự script VN_Stock_TSQL_Analysis.sql (staging → dim/fact → 10 query).
