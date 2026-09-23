@@ -1,17 +1,13 @@
 /*==============================================================================
-  PROJECT   : VN Stock Market – Price History Analysis (T-SQL)
+  PROJECT   : VN Stock Market – Price History Analysis 
   DATASET   : LichSuGia_ALL_01_01_2026_02_01_2026.csv
               403 mã cổ phiếu (HOSE/HNX/UPCOM) x 18 phiên giao dịch
               (05/01/2026 - 28/01/2026)
-  AUTHOR    : BbiGOD
-  MỤC ĐÍCH  : Portfolio project minh hoạ kỹ năng T-SQL cho vị trí
-              Business Data Analyst - từ mức Junior đến Junior+
+  AUTHOR    : HUNG_THANH
+  MỤC ĐÍCH  :Business Data Analyst 
               (staging -> star schema -> window functions -> insight)
 ==============================================================================*/
 
-/*------------------------------------------------------------------------------
-  0. TẠO DATABASE (bỏ qua nếu đã có sẵn database làm việc)
-------------------------------------------------------------------------------*/
 -- CREATE DATABASE VN_Stock_Portfolio;
 -- GO
 -- USE VN_Stock_Portfolio;
@@ -29,7 +25,7 @@ CREATE TABLE dbo.Staging_StockPrice (
     TradeDateText       VARCHAR(10),      -- dạng dd/mm/yyyy trong file gốc
     ClosePrice          DECIMAL(18,2),
     AdjClosePrice       DECIMAL(18,2),
-    ChangeText          NVARCHAR(50),     -- vd: "+0,02 (+0,26%)" -> giữ nguyên text, xử lý ở bước transform nếu cần
+    ChangeText          NVARCHAR(50),     -- vd: "+0,02 (+0,26%)" -> giữ nguyên text
     MatchedVolume       BIGINT,
     MatchedValue        DECIMAL(18,2),    -- đơn vị: tỷ VNĐ
     DealVolume          BIGINT,
@@ -40,9 +36,6 @@ CREATE TABLE dbo.Staging_StockPrice (
 );
 GO
 
--- Nạp dữ liệu bằng BULK INSERT (đổi đường dẫn cho đúng máy của bạn)
--- Lưu ý: file gốc có BOM (UTF-8 with BOM) và dùng dấu phẩy Việt Nam trong cột ChangeText
--- nên cột này được giữ dạng NVARCHAR, không convert sang số.
 /*
 BULK INSERT dbo.Staging_StockPrice
 FROM 'C:\Data\LichSuGia_ALL_01_01_2026_02_01_2026.csv'
@@ -138,11 +131,11 @@ GO
 
 
 /*==============================================================================
-  PHẦN 3 - 10 CÂU HỎI NGHIỆP VỤ (Junior -> Junior+)
+  PHẦN 3 - 10 CÂU HỎI NGHIỆP VỤ 
 ==============================================================================*/
 
 /*------------------------------------------------------------------------------
-  Q1 [Junior] Tổng khối lượng & giá trị giao dịch toàn thị trường theo từng phiên
+  Q1 Tổng khối lượng & giá trị giao dịch toàn thị trường theo từng phiên
 ------------------------------------------------------------------------------*/
 SELECT
     d.FullDate,
@@ -155,7 +148,7 @@ ORDER BY d.FullDate;
 
 
 /*------------------------------------------------------------------------------
-  Q2 [Junior] Top 10 mã có giá trị giao dịch trung bình/phiên cao nhất (thanh khoản)
+  Q2  Top 10 mã có giá trị giao dịch trung bình/phiên cao nhất (thanh khoản)
 ------------------------------------------------------------------------------*/
 SELECT TOP 10
     t.Ticker,
@@ -168,7 +161,7 @@ ORDER BY AvgDailyValue_BillionVND DESC;
 
 
 /*------------------------------------------------------------------------------
-  Q3 [Junior] Biên độ dao động trung bình trong phiên (Amplitude %)
+  Q3  Biên độ dao động trung bình trong phiên (Amplitude %)
              Amplitude% = (High - Low) / Open * 100
 ------------------------------------------------------------------------------*/
 SELECT TOP 10
@@ -210,7 +203,7 @@ ORDER BY PeriodReturnPct DESC;            -- đảo ORDER BY DESC/ASC để xem 
 
 
 /*------------------------------------------------------------------------------
-  Q5 [Junior+] Biến động ngày-qua-ngày (Daily Return %) dùng LAG()
+  Q5 Biến động ngày-qua-ngày (Daily Return %) dùng LAG()
 ------------------------------------------------------------------------------*/
 SELECT
     t.Ticker,
@@ -228,7 +221,7 @@ ORDER BY t.Ticker, d.FullDate;
 
 
 /*------------------------------------------------------------------------------
-  Q6 [Junior+] Độ biến động (volatility) - STDEV daily return theo mã, rank giảm dần
+  Q6 Độ biến động (volatility) - STDEV daily return theo mã, rank giảm dần
 ------------------------------------------------------------------------------*/
 WITH DailyReturn AS (
     SELECT
@@ -250,7 +243,7 @@ ORDER BY VolatilityStdDev DESC;
 
 
 /*------------------------------------------------------------------------------
-  Q7 [Junior+] Phân khúc thanh khoản (Liquidity Segmentation) dùng NTILE(4)
+  Q7 Phân khúc thanh khoản (Liquidity Segmentation) dùng NTILE(4)
              Tier 1 = thanh khoản cao nhất, Tier 4 = thấp nhất
 ------------------------------------------------------------------------------*/
 WITH AvgLiquidity AS (
@@ -270,7 +263,7 @@ ORDER BY LiquidityTier, AvgDailyValue DESC;
 
 
 /*------------------------------------------------------------------------------
-  Q8 [Junior+] Đường trung bình động 5 phiên (SMA5) - Moving Average
+  Q8 Đường trung bình động 5 phiên (SMA5) - Moving Average
 ------------------------------------------------------------------------------*/
 SELECT
     t.Ticker,
@@ -287,7 +280,7 @@ ORDER BY t.Ticker, d.FullDate;
 
 
 /*------------------------------------------------------------------------------
-  Q9 [Junior+] Phát hiện bất thường (Anomaly Detection) bằng Z-score
+  Q9  Phát hiện bất thường (Anomaly Detection) bằng Z-score
              Z = (x - mean) / stdev tính theo từng mã trên daily return
              Lọc |Z| > 2.5 -> phiên giao dịch "lệch chuẩn" so với hành vi thông thường của mã đó
 ------------------------------------------------------------------------------*/
@@ -322,7 +315,7 @@ ORDER BY ZScore;
 
 
 /*------------------------------------------------------------------------------
-  Q10 [Junior+] Top phiên biến động mạnh nhất toàn thị trường (best/worst single-day)
+  Q10 Top phiên biến động mạnh nhất toàn thị trường (best/worst single-day)
               Dùng RANK() trên toàn bộ tập hợp Ticker x Date
 ------------------------------------------------------------------------------*/
 WITH DailyReturn AS (
