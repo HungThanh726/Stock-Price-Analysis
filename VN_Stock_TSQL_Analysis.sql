@@ -174,7 +174,7 @@ ORDER BY AvgAmplitudePct DESC;
 
 
 /*------------------------------------------------------------------------------
-  Q4 [Junior+] Lợi nhuận cả giai đoạn mỗi mã (giá đóng cửa đầu kỳ vs cuối kỳ)
+  Q4 Lợi nhuận cả giai đoạn mỗi mã (giá đóng cửa đầu kỳ vs cuối kỳ)
              Dùng FIRST_VALUE / LAST_VALUE (window function)
 ------------------------------------------------------------------------------*/
 WITH PeriodPrice AS (
