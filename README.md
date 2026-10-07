@@ -31,7 +31,7 @@ Nhà đầu tư cá nhân và bộ phận theo dõi thị trường cần một 
 
 ```
 VN_Stock_Market_Analytics/
-|README.md                                  <- file này
+|README.md                                  
 | data/
 | LichSuGia_ALL_01_01_2026_02_01_2026.csv   <- snapshot gốc dùng cho Key Insights bên dưới
 |─ 01_crawl/
