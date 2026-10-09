@@ -14,7 +14,7 @@ Nhà đầu tư cá nhân và bộ phận theo dõi thị trường cần một 
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Nguồn | CafeF (s.cafef.vn) — crawl trực tiếp hoặc dùng file snapshot có sẵn trong `data/` |
+| Nguồn | CafeF (s.cafef.vn) |
 | Phạm vi | 403 mã cổ phiếu (HOSE/HNX/UPCOM) |
 | Khoảng thời gian | 05/01/2026 – 28/01/2026 (18 phiên giao dịch) |
 | Số dòng | 7,224 (403 mã x 18 phiên) |
@@ -33,9 +33,9 @@ Nhà đầu tư cá nhân và bộ phận theo dõi thị trường cần một 
 VN_Stock_Market_Analytics/
 |README.md                                  
 | data/
-| LichSuGia_ALL_01_01_2026_02_01_2026.csv   <- snapshot gốc dùng cho Key Insights bên dưới
+| LichSuGia_Crawled.csv  
 |─ 01_crawl/
-| crawl_cafef.py                            <- Extract: crawl dữ liệu trực tiếp từ CafeF
+| crawl_cafef.ipynb                           <- crawl dữ liệu trực tiếp từ CafeF
 | tickers.csv                               <- danh sách 403 mã dùng để crawl
 |- 02_etl/
 | ETL_Pipeline.ipynb                        <- Transform (rename cột VN->EN, parse, clean) + Load
