@@ -1,64 +1,157 @@
-# VN Stock Market Analytics — End-to-End Project
+# VN Stock Market Analytics — Crawl → ETL → SQL → Power BI
 
-Project phân tích thị trường chứng khoán Việt Nam (HOSE/HNX/UPCOM), đi đầy đủ 1 vòng pipeline thực tế của Business Data Analyst: **Crawl dữ liệu → ETL → SQL (star schema + business question) → Power BI dashboard**.
+Project phân tích end-to-end dữ liệu giao dịch **396 mã cổ phiếu Việt Nam trong 20 phiên (09/09 – 06/10/2026)**: tự crawl dữ liệu từ CafeF, làm sạch bằng Python, mô hình hoá star schema và trả lời 10 Business Question bằng T-SQL, trực quan hoá bằng Power BI (3 trang).
+
+Điểm nhấn của project: phát hiện và xử lý lỗi **giá đóng cửa chưa điều chỉnh sự kiện doanh nghiệp** — nếu dùng giá thô, 31 mã (7.8%) bị tính sai biến động (ví dụ TRC hiện −70.9% thay vì +16.6% sau điều chỉnh).
+
+---
 
 ## 1. Overview / Business Problem
 
-Nhà đầu tư cá nhân và bộ phận theo dõi thị trường cần một cái nhìn tổng quan, cập nhật về **thanh khoản, biến động giá và các phiên giao dịch bất thường** trên toàn thị trường, thay vì theo dõi thủ công từng mã. Project này trả lời 3 câu hỏi kinh doanh cốt lõi:
+Một nhà đầu tư hoặc bộ phận theo dõi thị trường cần nhìn nhanh ~400 mã cổ phiếu thay vì kiểm tra thủ công từng mã. Project trả lời 4 câu hỏi:
 
-1. Dòng tiền đang tập trung ở nhóm cổ phiếu nào (thanh khoản cao/thấp)?
-2. Mã nào tăng/giảm mạnh nhất, biến động (rủi ro) cao nhất trong kỳ?
-3. Có phiên giao dịch nào bất thường cần lưu ý (dấu hiệu rủi ro hoặc sự kiện doanh nghiệp) không?
+1. **Dòng tiền** đang mạnh hay yếu, và tập trung ở nhóm mã nào?
+2. **Mã nào** tăng/giảm mạnh nhất và biến động (rủi ro) cao nhất?
+3. **Phiên nào bất thường** cần rà soát (chạm biên độ, lệch chuẩn thống kê)?
+4. **Dữ liệu giá có đáng tin không?** (sự kiện doanh nghiệp làm méo lợi suất)
+
+Quy trình: `CafeF API → crawl (Python) → ETL (Pandas) → SQL Server (star schema + 10 BQ) → Power BI (3 trang)`.
+
+---
 
 ## 2. Dataset Description
 
+### 2.1 Tổng quan
+
 | Thuộc tính | Giá trị |
 |---|---|
-| Nguồn | CafeF (cafef.vn) |
-| Phạm vi | 403 mã cổ phiếu (HOSE/HNX/UPCOM) |
-| Khoảng thời gian | 05/01/2026 – 28/01/2026 (18 phiên giao dịch) |
-| Số dòng | 7,224 (403 mã x 18 phiên) |
+| Nguồn | CafeF — crawl bằng [crawl_cafef.ipynb](./crawl_cafef.ipynb) |
+| Khoảng thời gian phân tích | 09/09/2026 – 06/10/2026 (**20 phiên liên tiếp**) |
+| Số mã | 396 (crawl được 398, loại 2 mã không đủ phiên) |
+| Số dòng | 7,932 raw → **7,920** sau khi làm sạch (396 mã × 20 phiên) |
 | Đơn vị giá trị giao dịch | tỷ VNĐ |
-| Các cột gốc | Mã, Ngày, Giá đóng cửa, Giá điều chỉnh, Thay đổi, Khối lượng khớp lệnh, Giá trị khớp lệnh, Khối lượng thỏa thuận, Giá trị thỏa thuận, Giá mở cửa, Giá cao nhất, Giá thấp nhất |
 
-## 3. Tech Stack
+Schema sau ETL ([StockPrice_Clean.csv](./StockPrice_Clean.csv)): `Ticker, TradeDate, DayOfWeek, OpenPrice, HighPrice, LowPrice, ClosePrice, AdjClosePrice, MatchedVolume, MatchedValue, DealVolume, DealValue`.
+---
 
-- **Python**: `requests` (crawl), `pandas` (ETL), chạy trong Jupyter Notebook
-- **SQL Server (T-SQL)**: star schema, window functions (`LAG`, `RANK`, `NTILE`, `STDEV`, `FIRST_VALUE/LAST_VALUE`)
-- **Power BI Desktop**: DAX measures, dashboard 3 trang
+## 2. Tech Stack
 
-## 4. Project Structure
+| Tầng | Công cụ |
+|---|---|
+| Crawl | Python (`requests`, `pandas`, `logging`) trong Jupyter |
+| ETL | Python (`pandas`), Jupyter Notebook |
+| Database | SQL Server  |
+| BI | Power BI Desktop, DAX |
 
-```
-VN_Stock_Market_Analytics/
-|README.md                                  
-| data/
-| LichSuGia_Crawled.csv  
-|─ 01_crawl/
-| crawl_cafef.ipynb                           <- crawl dữ liệu trực tiếp từ CafeF
-| tickers.csv                               <- danh sách 403 mã dùng để crawl
-|- 02_etl/
-| ETL_Pipeline.ipynb                        <- Transform (rename cột VN->EN, parse, clean) + Load
-|- 03_sql/
-| 01_star_schema.sql                        <- dựng DimTicker / DimDate / FactStockPrice
-| 02_business_questions.sql                 <- 10 Business Question (Q1-Q10) + Bonus
-|- 04_powerbi/
-```
+---
 
-## 5. Key Insights
+## 3. Project Structure
 
-- Tổng giá trị giao dịch toàn thị trường trong 18 phiên: **~577,449 tỷ VNĐ**.
-- **Top gainer cả giai đoạn**: PLX (+62.3%) · **Top loser**: MCH (-29.0%, xem ghi chú data quality bên dưới).
-- **Top 5 mã thanh khoản cao nhất**: VIX, VHM, SHB, HPG, VCB — tập trung ở nhóm ngân hàng/bluechip vốn hoá lớn.
-- **Mã biến động (volatility) cao nhất**: PMG (~6.6%/phiên), HID (~5.9%), CMV (~5.5%) — đa phần là nhóm thanh khoản thấp.
-- **157 phiên** được gắn cờ bất thường theo Z-score (|Z| > 2.5), phần lớn trùng với các phiên **kịch trần/kịch sàn (±7%)** theo quy tắc biên độ dao động giá của HOSE.
-- Thanh khoản trung bình cao nhất vào **Thứ Năm**, thấp nhất vào **Thứ Hai**.
-- **Data quality**: mã **MCH** ngày 09/01/2026 giảm ~18.7% theo giá đóng cửa dù cột "Thay đổi" gốc chỉ ghi -0.11% → dấu hiệu giá tham chiếu được điều chỉnh do sự kiện doanh nghiệp (chia cổ tức/tách quyền), không phải giảm sàn thực tế.
+Các file hiện nằm trực tiếp trong thư mục workspace `Stock_price`:
+
+- [crawl_cafef.ipynb](./crawl_cafef.ipynb) — crawl dữ liệu CafeF.
+- [LichSuGia_Crawled.csv](./LichSuGia_Crawled.csv) — dữ liệu crawl thô, 7.932 dòng.
+- [ETL_Pipeline.ipynb](./ETL_Pipeline.ipynb) — làm sạch và xuất dữ liệu.
+- [StockPrice_Clean.csv](./StockPrice_Clean.csv) — dữ liệu sạch, 7.920 dòng.
+- [01_star_schema.sql](./01_star_schema.sql) — dựng DimTicker, DimDate và FactStockPrice.
+- [02_business_questions.sql](./02_business_questions.sql) — truy vấn câu hỏi nghiệp vụ.
+- [README_StockPrice.md](./README_StockPrice.md) — tài liệu dự án.
+
+---
+
+## 4. Key Insights
+
+> Phạm vi: 396 mã × 20 phiên. Chỉ số lợi suất/biến động tính trên `AdjClosePrice`.
+
+### 4.1 Hoạt động thị trường
+- Tổng giá trị khớp lệnh: **259,797 tỷ VNĐ** (10.3 tỷ cổ phiếu); trung bình **12,990 tỷ/phiên**.
+- Phiên đỉnh **18/09** (21,876 tỷ, gấp 1.68× trung bình); phiên thấp nhất **05/10** (9,976 tỷ, bằng 0.77×).
+- Thanh khoản 10 phiên cuối **thấp hơn 13.4%** so với 10 phiên đầu.
+- Độ rộng thị trường lệch giảm: **109 mã tăng / 279 mã giảm / 8 đứng giá**; lợi suất trung vị −3.08%.
+
+### 4.2 Mức độ tập trung thanh khoản
+- **99 mã Tier 1 (25% số mã) chiếm 96.6% giá trị giao dịch**; Tier 3 + Tier 4 cộng lại chỉ 0.2%.
+- Top 10 chiếm **39.6%**; riêng VIC chiếm **6.7%**.
+- 208/396 mã có giá trị giao dịch trung bình dưới 1 tỷ/phiên.
+
+| Hạng | Mã | Tổng giá trị (tỷ) | TB/phiên (tỷ) |
+|---|---|---|---|
+| 1 | VIC | 17,320 | 866.0 |
+| 2 | VHM | 13,798 | 689.9 |
+| 3 | VPB | 11,387 | 569.4 |
+| 4 | TCB | 10,349 | 517.5 |
+| 5 | SHB | 9,278 | 463.9 |
+| 6 | SSI | 8,883 | 444.2 |
+| 7 | BSR | 8,498 | 424.9 |
+| 8 | VIX | 7,838 | 391.9 |
+| 9 | FPT | 7,806 | 390.3 |
+| 10 | HPG | 7,762 | 388.1 |
+
+### 4.3 Mã tăng/giảm mạnh nhất (cả giai đoạn)
+- **Tăng:** VDP +40.5%, PET +34.4%, PVP +32.6%, STG +26.6%, BFC +24.8%.
+- **Giảm:** KOS −62.1%, PNJ −46.9%, TNH −29.3%, FIR −28.6%, VPG −26.7%.
+- KOS và PNJ là biến động **thật**: mỗi mã có 3 phiên giảm sàn và lợi suất từng phiên khớp hoàn toàn cột "Thay đổi" của CafeF.
+
+### 4.4 Rủi ro & biến động
+- Độ lệch chuẩn lợi suất ngày cao nhất: HU1 5.68%, HID 5.57%, PIT 5.54%, VDP 5.22%, TNC 5.04%.
+- Biên độ trong phiên trung bình cao nhất: HID 8.21%, SVD 6.93%, PLP 5.64%, SSB 5.56%, HII 5.55%.
+- Độ lệch chuẩn trung bình theo nhóm thanh khoản: Tier 1 1.82%, Tier 2 1.80%, Tier 3 1.50%, **Tier 4 2.28%**.
+
+### 4.5 Phiên bất thường
+- **153 phiên** (146 mã) có |Z-score| > 2.5, chiếm 2.0% trong 7,524 quan sát lợi suất.
+- **45 phiên chạm biên ±7%** (21 tăng trần, 24 giảm sàn) ở 34 mã; không có phiên nào vượt ±7.0% sau điều chỉnh.
+
+### 4.6 Hiệu ứng của sự kiện doanh nghiệp lên lợi suất
+
+| Mã | Lợi suất giá thô | Lợi suất giá điều chỉnh |
+|---|---|---|
+| TRC | −70.86% | **+16.55%** |
+| PHR | −46.50% | −1.41% |
+| SZL | −46.98% | −5.16% |
+| HTN | −22.78% | +15.77% |
+| VPB (top 3 thanh khoản) | −15.33% | +6.72% |
+
+Dùng giá thô còn tạo **165** phiên bất thường (thay vì 153) và **12 phiên "giảm ≥10%"** hoàn toàn là nhiễu.
+
+### 4.7 Giao dịch thỏa thuận & hiệu ứng ngày trong tuần
+- Giá trị thỏa thuận bằng **23.2%** giá trị khớp lệnh, tập trung ở 166 mã; 5 mã đầu (HDB, EIB, STB, SSB, SBT) chiếm 29.3%.
+- Thứ Sáu có giá trị TB cao nhất (15,679 tỷ) nhưng mỗi thứ chỉ có 4 phiên và Thứ Sáu chứa phiên đỉnh 18/09 (bỏ phiên này còn 13,613 tỷ) — chỉ là giả thuyết, cần thêm dữ liệu.
+
+---
 
 ## 6. Business Recommendations
 
-- **Watchlist theo Liquidity Tier (Q7)**: ưu tiên theo dõi nhóm Tier 1 (thanh khoản cao) cho chiến lược ngắn hạn — dễ vào/thoát lệnh mà không trượt giá nhiều; nhóm Tier 4 nên tránh giao dịch khối lượng lớn.
-- **Cảnh báo rủi ro theo volatility (Q6)**: các mã có độ lệch chuẩn daily return cao (PMG, HID, CMV...) cần mức cắt lỗ chặt hơn trong mô hình quản trị rủi ro danh mục.
-- **Luôn dùng Giá điều chỉnh khi tính lợi nhuận**: như trường hợp MCH cho thấy, dùng giá đóng cửa thô để tính % thay đổi có thể cho kết quả sai lệch nghiêm trọng khi có sự kiện doanh nghiệp (chia cổ tức/tách quyền) — nên chuẩn hoá quy trình tính return luôn ưu tiên `AdjClosePrice`.
-- **Cảnh báo tự động cho phiên bất thường (Q9)**: 157 phiên Z-score bất thường có thể dùng làm input cho 1 bảng cảnh báo hằng ngày (daily alert) gửi cho đội phân tích, thay vì rà soát thủ công từng mã.
-- **Theo dõi nhịp thanh khoản theo tuần**: thanh khoản thấp vào Thứ Hai có thể là điểm vào lệnh tốt hơn (giá chưa phản ánh hết thông tin cuối tuần) — cần thêm dữ liệu dài hạn để kiểm chứng xu hướng này có lặp lại hay không.
+1. **Chuẩn hoá dùng giá điều chỉnh** cho mọi báo cáo lợi suất/rủi ro. Giá thô sẽ phát cảnh báo "sập giá" giả ở 31 mã, kể cả VPB thuộc top 3 thanh khoản.
+2. **Tập trung nguồn lực theo thanh khoản:** 99 mã Tier 1 phủ 96.6% dòng tiền. Phần còn lại xếp vào danh sách "thanh khoản thấp" với hạn mức lệnh chặt hơn (208 mã trung bình dưới 1 tỷ/phiên).
+3. **Theo dõi rủi ro tập trung:** top 10 chiếm 39.6% và VIC 6.7% giá trị giao dịch — nên đọc tín hiệu thanh khoản cùng với độ rộng thị trường (số mã tăng/giảm) để tránh bị nhóm vốn hoá lớn chi phối.
+4. **Cảnh báo hai tầng:** ưu tiên 45 phiên chạm biên trước, sau đó mới tới các phiên Z-score còn lại, để giảm nhiễu cho người rà soát.
+5. **Kiểm tra cơ bản/tin tức** cho các mã sụt giảm sâu thật như KOS (−62%) và PNJ (−47%); thêm cờ "drawdown > 40%" vào dashboard.
+6. **Tách dòng tiền thỏa thuận** khỏi khớp lệnh khi đo thanh khoản, vì thỏa thuận chiếm 23.2% và tập trung ở vài mã ngân hàng.
+7. **Tín hiệu thận trọng toàn thị trường** trong kỳ: thanh khoản giảm 13.4% và 279/396 mã giảm giá — nên theo dõi tiếp thêm vài tuần để xác nhận xu hướng.
+
+---
+
+## 7. How to Run
+
+### Bước 1 — Crawl (tuỳ chọn)
+```bash
+pip install requests pandas jupyter
+jupyter notebook crawl_cafef.ipynb
+```
+### Bước 2 — ETL
+Chạy các cell trong [ETL_Pipeline.ipynb]. Notebook đọc [LichSuGia_Crawled.csv], loại mã có ít phiên hơn mức tối đa, rồi xuất [StockPrice_Clean.csv]. kết quả là 7.920 dòng / 396 mã.
+
+### Bước 3 — SQL Server
+1. Nạp `StockPrice_Clean` vào `dbo.StockPrice_Clean` 
+2. Chạy [01_star_schema.sql]
+3. Chạy [02_business_questions.sql]
+
+| Kiểm tra | Kết quả mong đợi |
+|---|---|
+| `COUNT(*)` FactStockPrice | 7,920 |
+| `COUNT(*)` DimTicker / DimDate | 396 / 20 |
+| `SUM(MatchedValue)` | 259,797.25 |
+| Q4 top gainer / top loser | VDP +40.48% / KOS −62.11% |
+| Q9 số phiên có Z-score tuyệt đối vượt 2.5 | 153 |
+
+### Bước 4 — Visualization
