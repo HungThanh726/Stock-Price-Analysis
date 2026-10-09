@@ -1,4 +1,4 @@
-# VN Stock Market Analytics — End-to-End Portfolio Project
+# VN Stock Market Analytics — End-to-End Project
 
 Project phân tích thị trường chứng khoán Việt Nam (HOSE/HNX/UPCOM), đi đầy đủ 1 vòng pipeline thực tế của Business Data Analyst: **Crawl dữ liệu → ETL → SQL (star schema + business question) → Power BI dashboard**.
 
